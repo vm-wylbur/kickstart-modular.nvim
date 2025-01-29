@@ -1,0 +1,190 @@
+local bo = vim.bo
+local fn = vim.fn
+
+-- https://github.com/chrisgrieser/.config/blob/8af1841ba24f7c81c513e12f853b52f530ef5b37/nvim/lua/plugins/lualine.lua
+-- displays irregular indentation and linebreaks, displays nothing when all is good
+local function irregularWhitespace()
+  -- USER CONFIG
+  -- filetypes and the number of spaces they use. Omit or set to nil to use tabs for that filetype.
+  local spaceFiletypes = { python = 4, yaml = 2, lua = 2 }
+  local ignoredFiletypes = { 'css', 'markdown', 'gitcommit' }
+  local linebreakType = 'unix' ---@type "unix" | "mac" | "dos"
+
+  -- vars & guard
+  local usesSpaces = bo.expandtab
+  local usesTabs = not bo.expandtab
+  local brUsed = bo.fileformat
+  local ft = bo.filetype
+  local width = bo.tabstop
+  if vim.tbl_contains(ignoredFiletypes, ft) or fn.mode() ~= 'n' or bo.buftype ~= '' then
+    return ''
+  end
+
+  -- non-default indentation setting (e.g. changed via indent-o-matic)
+  local nonDefaultSetting = ''
+  local spaceFtsOnly = vim.tbl_keys(spaceFiletypes)
+  if (usesSpaces and not vim.tbl_contains(spaceFtsOnly, ft)) or (usesSpaces and width ~= spaceFiletypes[ft]) then
+    nonDefaultSetting = ' ' .. tostring(width) .. '󱁐  '
+  elseif usesTabs and vim.tbl_contains(spaceFtsOnly, ft) then
+    nonDefaultSetting = ' 󰌒 ' .. tostring(width) ' '
+  end
+
+  -- wrong or mixed indentation
+  local hasTabs = fn.search('^\t', 'nw') > 0
+  local hasSpaces = fn.search('^ ', 'nw') > 0
+  -- exception, jsdocs: space not followed by "*"
+  if bo.filetype == 'javascript' then
+    hasSpaces = fn.search([[^ \(\*\)\@!]], 'nw') > 0
+  end
+  local wrongIndent = ''
+  if usesTabs and hasSpaces then
+    wrongIndent = ' 󱁐 '
+  elseif usesSpaces and hasTabs then
+    wrongIndent = ' 󰌒 '
+  elseif hasTabs and hasSpaces then
+    wrongIndent = ' 󱁐 + 󰌒 '
+  end
+
+  -- line breaks
+  local linebreakIcon = ''
+  if brUsed ~= linebreakType then
+    if brUsed == 'unix' then
+      linebreakIcon = ' 󰌑 '
+    elseif brUsed == 'mac' then
+      linebreakIcon = ' 󰌑 '
+    elseif brUsed == 'dos' then
+      linebreakIcon = ' 󰌑 '
+    end
+  end
+
+  return nonDefaultSetting .. wrongIndent .. linebreakIcon
+end
+
+-- shows global mark M
+vim.api.nvim_del_mark 'M' -- reset on session start
+local function markM()
+  local markObj = vim.api.nvim_get_mark('M', {})
+  local markLn = markObj[1]
+  local markBufname = vim.fs.basename(markObj[4])
+  if markBufname == '' then
+    return ''
+  end -- mark not set
+  return ' ' .. markBufname .. ':' .. markLn
+end
+
+-- only show the clock when fullscreen (= it covers the menubar clock)
+local function clock()
+  if vim.opt.columns:get() < 110 or vim.opt.lines:get() < 25 then
+    return ''
+  end
+
+  local time = tostring(os.date()):sub(12, 16)
+  if os.time() % 2 == 1 then
+    time = time:gsub(':', ' ')
+  end -- make the `:` blink
+  return time
+end
+
+-- wrapper to not require navic directly
+local function navicBreadcrumbs()
+  if bo.filetype == 'css' or not require('nvim-navic').is_available() then
+    return ''
+  end
+  return require('nvim-navic').get_location()
+end
+
+-- nerdfont: powerline icons have the prefix 'ple-'
+local bottomSeparators = { left = '', right = '' }
+local topSeparators = { left = '', right = '' }
+local emptySeparators = { left = '', right = '' }
+
+local lualineConfig = {
+  options = {
+    icons_enabled = true,
+    theme = 'auto',
+    component_separators = { left = '', right = '' },
+    section_separators = { left = '', right = '' },
+    disabled_filetypes = {
+      statusline = {},
+      winbar = {},
+    },
+    ignore_focus = {},
+    always_divide_middle = true,
+    globalstatus = false,
+    refresh = {
+      statusline = 1000,
+      tabline = 1000,
+      winbar = 1000,
+    },
+  },
+  tabline = {
+    lualine_a = {
+      -- INFO setting different section separators in the same components has
+      -- yanky results, they should have the same separator
+      -- searchcounter at the top, so it work with cmdheight=0
+      {
+        'buffers',
+        show_filename_only = true,
+        hide_filename_extension = true,
+        mode = 4,
+        symbols = {
+          modified = ' ●', -- Text to show when the buffer is modified
+          alternate_file = '#', -- Text to show to identify the alternate file
+          directory = '', -- Text to show when the buffer is a directory
+        },
+      },
+    },
+    lualine_b = {
+      { navicBreadcrumbs, section_separators = topSeparators },
+    },
+    lualine_c = {},
+    lualine_x = {},
+    -- INFO dap and recording status defined in the respective plugin configs
+    -- for lualine_y and lualine_z for their lazy loading
+    lualine_y = {
+      { markM },
+    },
+    lualine_z = {},
+  },
+  sections = {
+    lualine_a = { 'mode' },
+    lualine_b = { "require('lsp-status').status()" },
+    lualine_c = {
+      {
+        'filename',
+        path = 3,
+        shorting = 20,
+        symbols = {
+          modified = '[+]', -- Text to show when the file is modified.
+          readonly = '[-]', -- Text to show when the file is non-modifiable or readonly.
+          unnamed = '[No Name]', -- Text to show for unnamed buffers.
+          newfile = '[New]', -- Text to show for newly created file before first write
+        },
+      },
+      { irregularWhitespace },
+    },
+    lualine_x = {
+      { 'encoding', 'fileformat', 'filetype' },
+    },
+    lualine_y = { 'progress' },
+    lualine_z = { 'location' },
+  },
+  inactive_sections = {
+    lualine_a = {},
+    lualine_b = {},
+    lualine_c = {},
+    lualine_x = {},
+    lualine_y = {},
+    lualine_z = {},
+  },
+  inactive_winbar = {},
+  extensions = {},
+  always_show_tabline = true,
+}
+
+return {
+  'nvim-lualine/lualine.nvim',
+  dependencies = { 'nvim-tree/nvim-web-devicons' },
+  opts = lualineConfig,
+}
+-- vim: ts=2 sts=2 sw=2 et
