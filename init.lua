@@ -1,7 +1,6 @@
 --[[
 
  TODO: codecompanion
- TODO: pyright
 
 --]]
 
@@ -17,14 +16,14 @@ vim.loader.enable()
 
 require 'lazy-bootstrap'
 require 'lazy-plugins'
-
+--
 require 'options'
 require 'keymaps'
 require 'autocmd'
-
--- [[ weird plugins that need attention ]]
+--
+-- -- [[ weird plugins that need attention ]]
 require('leap').create_default_mappings()
-
+--
 local lspconfig = require 'lspconfig'
 lspconfig.pyright.setup {}
 
