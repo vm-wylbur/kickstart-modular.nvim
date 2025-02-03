@@ -1,6 +1,8 @@
 --[[
 
- TODO: codecompanion
+ TODO:
+- [ ] codecompanion
+- [x] add grep Neovim files to <leader>s
 
 --]]
 
