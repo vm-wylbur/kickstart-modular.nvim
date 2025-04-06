@@ -44,14 +44,9 @@ vim.keymap.set('n', 'gx', '<esc>:URLOpenUnderCursor<cr>')
 -- NOTE: this is how which-key is set
 local wk = require 'which-key'
 wk.add {
-  { '<leader>f', '<cmd>lua MiniFiles.open()<CR>', desc = 'File navigator' },
-  { '<leader>1', '<cmd>BufferGoto 1<CR>', desc = 'Buffer nav' },
-  { '<leader>2', '<cmd>BufferGoto 2<CR>', desc = 'Buffer nav' },
-  { '<leader>3', '<cmd>BufferGoto 3<CR>', desc = 'Buffer nav' },
-  { '<leader>4', '<cmd>BufferGoto 4<CR>', desc = 'Buffer nav' },
-  { '<leader>5', '<cmd>BufferGoto 5<CR>', desc = 'Buffer nav' },
-  { '<leader>b', group = 'Buffer' },
-  { '<leader>bc', '<cmd>BufferClose<CR>', desc = 'Buffer close' },
+  -- { '<leader>f', '<cmd>lua MiniFiles.open()<CR>', desc = 'File navigator' },
+  { '<leader>b', '<cmd>BufferPick <CR>', desc = 'BufferPicker' },
+  -- { '<leader>bc', '<cmd>BufferClose<CR>', desc = 'Buffer close' },
 }
 -- bi-directional: anywhere on the screen
 vim.keymap.set({ 'n', 'x' }, 's', '<Plug>(leap)')
